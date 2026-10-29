@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Olas Cádiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Composición: cabecera, radar de buenas olas a 7 días y una ficha por playa (surf, bugui, marea y clima), todas siempre visibles. */
+  :root {
+    --bg: #eef3f5; --panel: #ffffff; --fg: #0e2230; --muted: #5a7080; --line: #d3dee4;
+    --accent: #0b7f8c; --star: #e08a00; --good: #168a5b; --warn: #c07a00; --bad: #b8433a;
+    --cell0: #e3ebef; --tide: #3b6fb0; --band: rgba(22,138,91,.14);
+    --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    --body: 'Barlow', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a1822; --panel: #11242f; --fg: #e6f0f4; --muted: #8aa3b1; --line: #213947;
+      --accent: #43c3cf; --star: #f2b13a; --good: #3fcf94; --warn: #f0b04a; --bad: #ef7d72;
+      --cell0: #172e3b; --tide: #6fa3e0; --band: rgba(63,207,148,.16); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a1822; --panel: #11242f; --fg: #e6f0f4; --muted: #8aa3b1; --line: #213947;
+    --accent: #43c3cf; --star: #f2b13a; --good: #3fcf94; --warn: #f0b04a; --bad: #ef7d72;
+    --cell0: #172e3b; --tide: #6fa3e0; --band: rgba(63,207,148,.16); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+  .wrap { max-width: 760px; margin: 0 auto; padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 16px; }
+  h1 { font-family: var(--display); font-weight: 700; font-size: 38px; line-height: 1; margin: 0; letter-spacing: .01em; text-transform: uppercase; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .dia:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  h2 { font-family: var(--display); font-weight: 600; font-size: 18px; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; color: var(--muted); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .avisos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .avisos li { display: flex; gap: 10px; align-items: baseline; }
+  .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px; border-radius: 4px; background: var(--cell0); color: var(--fg); white-space: nowrap; }
+  .tag.ola { background: var(--good); color: #fff; } .tag.baja { background: var(--bad); color: #fff; } .tag.fondo { background: var(--accent); color: #fff; }
+  .dias { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: 14px; }
+  .dia { font: inherit; color: inherit; text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 2px 8px; cursor: pointer; }
+  .dia[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .dia .dn { font: 600 12px var(--mono); text-transform: uppercase; color: var(--muted); display: block; }
+  .dia .dd { font: 700 20px var(--display); display: block; line-height: 1.15; }
+  .dr-h { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 4px; }
+  .rp { padding: 8px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+  .rp-top { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .cnt { font: 700 12px var(--mono); padding: 1px 7px; border-radius: 4px; color: #fff; }
+  .cnt.alto { background: var(--good); } .cnt.medio { background: var(--warn); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font: 500 12px var(--mono); padding: 2px 8px; border-radius: 4px; }
+  .chip.ok { background: var(--band); color: var(--fg); } .chip.no { background: var(--cell0); color: var(--muted); }
+  details.ley-box { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 14px; }
+  details.ley-box summary { cursor: pointer; color: var(--muted); }
+  .ley { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-top: 10px; }
+  .ley h5 { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 4px; }
+  .bd { display: flex; gap: 7px; align-items: baseline; font-size: 13px; margin-bottom: 2px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; background: var(--muted); }
+  .dot.bad { background: var(--bad); } .dot.warn { background: var(--warn); } .dot.good { background: var(--good); } .dot.tide { background: var(--tide); }
+  .ficha { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .ficha-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+  .ficha h3 { font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1.05; margin: 0; text-transform: uppercase; }
+  .zona { color: var(--muted); font-size: 13px; }
+  .notas { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+  .nt { display: flex; gap: 8px; align-items: center; font: 500 12px var(--mono); color: var(--muted); }
+  .nt .et { width: 42px; text-align: right; text-transform: uppercase; font-size: 10.5px; }
+  .st { display: inline-block; position: relative; letter-spacing: 2px; font-size: 16px; line-height: 1; color: var(--cell0); }
+  .st::before { content: '★★★★★'; position: absolute; left: 0; top: 0; width: var(--v); overflow: hidden; color: var(--star); white-space: nowrap; }
+  .consejo { background: var(--band); border-radius: 8px; padding: 10px 12px; font-size: 14.5px; }
+  .consejo b { font-weight: 600; }
+  .datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px 14px; }
+  .dato .k { font: 500 11px var(--mono); text-transform: uppercase; color: var(--muted); letter-spacing: .05em; }
+  .dato .v { font: 700 22px var(--display); line-height: 1.1; }
+  .dato .v small { font: 500 13px var(--body); color: var(--muted); }
+  .tabla { display: grid; grid-template-columns: 30px repeat(14, minmax(0, 1fr)); gap: 2px; align-items: stretch; }
+  .tabla .rh { font: 500 9px var(--mono); color: var(--muted); display: flex; align-items: center; justify-content: flex-start; }
+  .tabla .c { font: 500 10px var(--mono); min-width: 0; height: 22px; display: flex; align-items: center; justify-content: center; position: relative; border-radius: 3px; }
+  .tabla .c.cab { color: var(--muted); height: 16px; font-size: 9px; }
+  .tabla .c.cb { height: 46px; align-items: flex-start; }
+  .tabla .c.ic { height: 24px; }
+  .tabla .bar { position: absolute; left: 3px; right: 3px; bottom: 0; background: var(--tide); opacity: .45; border-radius: 2px 2px 0 0; }
+  .tabla .num { position: relative; padding-top: 2px; }
+  .tabla .blk { position: absolute; inset: 0; background: var(--good); opacity: var(--o); border-radius: 3px; }
+  .tabla .blk.b2 { background: var(--tide); }
+  .tabla .blk.cero { background: var(--cell0); opacity: 1; }
+  .tabla .tx { position: relative; color: var(--fg); }
+  .tabla .sep { border-top: 1px solid var(--line); margin-top: 3px; padding-top: 3px; height: 28px; }
+  .tabla .vt { border-bottom: 3px solid var(--good); } .tabla .vl { border-bottom: 3px solid var(--warn); } .tabla .vm { border-bottom: 3px solid var(--bad); }
+  .tmarea { grid-column: 2 / -1; position: relative; }
+  .tmarea .mk { position: absolute; transform: translateX(-50%); font: 600 9px var(--mono); color: var(--tide); white-space: nowrap; background: var(--panel); padding: 0 2px; border-radius: 2px; }
+  svg.marea { display: block; width: 100%; height: 64px; margin-top: 4px; }
+  .cambios { font-size: 13.5px; display: flex; flex-direction: column; gap: 4px; }
+  .cambios b { font-weight: 600; }
+  .leyenda { font: 500 11px var(--mono); color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
+  .leyenda i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+  .lbl-t { color: var(--muted); font-size: 12.5px; }
+  .tide-line { font-size: 13.5px; }
+  .tide-line span { white-space: nowrap; }
+  .clima-res { font-size: 14px; margin-top: 10px; display: flex; flex-direction: column; gap: 3px; }
+  .clima-res b { font-weight: 600; }
+  .sh { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 4px 0 -4px; }
+  details.otras { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; color: var(--muted); font-size: 14px; }
+  details.otras summary { cursor: pointer; }
+  details.otras ul { margin: 8px 0 0; padding-left: 18px; }
+  .estado { color: var(--muted); padding: 24px 0; text-align: center; }
+  .pie { color: var(--muted); font-size: 12.5px; }
+  @media (prefers-reduced-motion: no-preference) { .dia { transition: border-color .15s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Olas Cádiz</h1>
+    <div class="sub" id="act">Cargando previsión…</div>
+  </header>
+
+  <section class="panel">
+    <h2>Radar de los próximos días</h2>
+    <div class="lbl-t" style="margin-bottom:6px">Se señala cada playa y día donde se dan 2 o más de estas 4 condiciones: tamaño, periodo, fuerza y viento. Si no se da ninguna, no sale.</div>
+    <div id="radar"><div class="estado">Cargando…</div></div>
+    <details class="ley-box"><summary>Leyenda: cuándo es bajo, ok o serio</summary><div class="ley" id="leyenda"></div></details>
+  </section>
+
+  <div>
+    <h2>Previsión por playa</h2>
+    <div class="dias" id="dias" style="margin-top:0"></div>
+  </div>
+
+  <div id="fichas"></div>
+
+  <p class="pie">Datos: Open-Meteo (oleaje, viento, nivel del mar y tiempo). El modelo trabaja con celdas de unos 10 km, así que playas vecinas comparten swell y viento y cambian sobre todo por su orientación y exposición. La marea es una estimación, sirve para ver la tendencia. Las notas son sobre 5 y son un cálculo propio: tamaño, periodo, potencia, dirección, viento y marea.</p>
+</div>
+<script src="playas.js"></script>
+<script src="nucleo.js"></script>
+<script>
+(function () {
+  var O = window.Olas;
+  var DIAS_VISTA = O.DIAS_VISTA, H0 = O.H0, H1 = O.H1, NH = O.NH, TL = O.TL, CIELO = O.CIELO;
+  var nombreDir = O.nombreDir, f1 = O.f1, f0 = O.f0, hh = O.hh, hm = O.hm, rango = O.rango;
+  var resumenDia = O.resumenDia, nombreDia = O.nombreDia, fechaLarga = O.fechaLarga;
+  var UMBRAL = O.UMBRAL, condiciones = O.condiciones, condDia = O.condDia, tramos = O.tramos, consejo = O.consejo, cargar = O.cargar;
+  var state = { dia: 0, datos: null };
+
+  // ---------- Dibujo ----------
+  function estrellasHTML(v) { return '<span class="st" style="--v:' + (v / 5 * 100) + '%" aria-label="' + v + ' de 5">★★★★★</span>'; }
+  // Iconos del tiempo, dibujados en SVG.
+  function icono(cat, noche) {
+    var NUBE = '<path d="M7 19h10a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.2 10.2 4.4 4.4 0 0 0 7 19z" fill="var(--cell0)" stroke="var(--muted)" stroke-width="1.5" stroke-linejoin="round"/>';
+    var SOL = '<circle cx="12" cy="12" r="4" fill="var(--star)"/><g stroke="var(--star)" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></g>';
+    var s;
+    if (cat === 'sol') s = noche ? '<path d="M15.5 4.5a8 8 0 1 0 4 14 7 7 0 0 1-4-14z" fill="var(--muted)"/>' : SOL;
+    else if (cat === 'parcial') s = '<circle cx="9" cy="8.5" r="3.2" fill="var(--star)"/><g transform="translate(2 1.5)">' + NUBE + '</g>';
+    else if (cat === 'nublado') s = NUBE;
+    else if (cat === 'niebla') s = '<g stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round"><path d="M4 9h16M6 13h14M4 17h12"/></g>';
+    else if (cat === 'lluvia') s = '<g transform="translate(0 -3)">' + NUBE + '</g><g stroke="var(--tide)" stroke-width="1.8" stroke-linecap="round"><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></g>';
+    else s = '<g transform="translate(0 -3)">' + NUBE + '</g><path d="M12.5 14l-3 4.5h3L11 22l4.5-5.5h-3z" fill="var(--star)"/>';
+    return '<svg width="20" height="20" viewBox="0 0 24 24" role="img" aria-label="' + CIELO[cat] + '">' + s + '</svg>';
+  }
+
+  // ---------- Radar: cuántas de las 4 condiciones se dan ----------
+  // Tamaño, periodo, fuerza y viento. Cada playa y día enseña solo las horas donde se dan 2 o más.
+  function chip(etiqueta, ok, texto) { return '<span class="chip ' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ ' : '✗ ') + etiqueta + ' ' + texto + '</span>'; }
+
+  function dibujarRadar() {
+    var fechas = state.datos[0].fechas, html = '';
+    for (var d = 0; d < DIAS_VISTA && d < fechas.length; d++) {
+      var filas = state.datos.map(function (b) { return { b: b, g: condDia(b, d) }; }).filter(function (x) { return x.g; })
+        .sort(function (a, c) { return c.g.n - a.g.n || c.g.rep.ev.potencia - a.g.rep.ev.potencia; });
+      if (!filas.length) continue;
+      html += '<div class="dr-h">' + fechaLarga(fechas[d], d) + '</div>' + filas.map(function (x) {
+        var q = x.g.rep, c = x.g.c;
+        return '<div class="rp"><div class="rp-top"><b>' + x.b.p.nombre + '</b><span class="cnt ' + (x.g.n >= 3 ? 'alto' : 'medio') + '">' + x.g.n + ' de 4</span><span class="lbl-t">' + rango(x.g.v) + '</span></div><div class="chips">' +
+          chip('Tamaño', c.tam, f1(q.h) + ' m') + chip('Periodo', c.per, f0(q.T) + ' s') + chip('Fuerza', c.pot, f1(q.ev.potencia) + ' kW/m') +
+          chip('Viento', c.vie, f0(q.kn) + ' kn ' + nombreDir(q.wdir).split(' ')[0].toLowerCase()) + '</div></div>';
+      }).join('');
+    }
+    document.getElementById('radar').innerHTML = html || '<div class="estado" style="padding:6px 0;text-align:left">Ningún día de los próximos 7 cumple ni 2 de las 4 condiciones en ninguna playa: no se espera ola.</div>';
+  }
+
+  function dibujarDias() {
+    var fechas = state.datos[0].fechas;
+    document.getElementById('dias').innerHTML = fechas.slice(0, DIAS_VISTA).map(function (f, i) {
+      var mx = 0;
+      state.datos.forEach(function (b) { var g = condDia(b, i); if (g) mx = Math.max(mx, g.n); });
+      return '<button class="dia" data-d="' + i + '" aria-pressed="' + (i === state.dia) + '"><span class="dn">' + nombreDia(f, i) + '</span><span class="dd">' + (mx ? mx + '/4' : '–') + '</span></button>';
+    }).join('');
+  }
+
+  function leyendaHTML() {
+    var bloques = [
+      { t: 'Tamaño del swell', b: [['menos de 0,5 m', 'muy pequeña', 'bad'], ['0,5 – ' + f1(UMBRAL.tam) + ' m', 'pequeña', 'warn'], [f1(UMBRAL.tam) + ' – 2 m', 'buena (se da)', 'good'], ['más de 2 m', 'grande', 'tide']] },
+      { t: 'Periodo', b: [['menos de 7 s', 'corto', 'bad'], ['7 – ' + UMBRAL.per + ' s', 'medio', 'warn'], [UMBRAL.per + ' – 13 s', 'bueno (se da)', 'good'], ['más de 13 s', 'largo, mar de fondo', 'tide']] },
+      { t: 'Fuerza (kW por metro)', b: [['menos de 2', 'muy baja', 'bad'], ['2 – ' + UMBRAL.pot, 'baja', 'warn'], [UMBRAL.pot + ' – 8', 'media (se da)', 'good'], ['8 – 15', 'fuerte', 'good'], ['más de 15', 'muy fuerte, serio', 'tide']] },
+      { t: 'Viento (nudos)', b: [['hasta 5', 'flojo, casi glassy', 'good'], ['6 – ' + UMBRAL.vMedio, 'medio-bajo (se da)', 'good'], [(UMBRAL.vMedio + 1) + ' – ' + UMBRAL.vFuerte, 'ojo, sopla fuerte: solo se da si es de levante o sur', 'warn'], ['más de ' + UMBRAL.vFuerte, 'demasiado', 'bad']] }
+    ];
+    return bloques.map(function (k) {
+      return '<div><h5>' + k.t + '</h5>' + k.b.map(function (r) { return '<div class="bd"><i class="dot ' + r[2] + '"></i><span><b>' + r[0] + '</b> ' + r[1] + '</span></div>'; }).join('') + '</div>';
+    }).join('');
+  }
+
+  function sparkMarea(b) {
+    var hs = b.horas.filter(function (x) { return x.dia === state.dia && x.hora >= H0 - 1 && x.hora <= H1 + 1; });
+    var W = 560, Hh = 64, pad = 4, lo = -2.2, hi = 2.2;
+    var x = function (hora) { return ((hora - H0) + 0.5) / NH * W; };
+    var y = function (n) { return pad + (hi - n) / (hi - lo) * (Hh - 2 * pad); };
+    var d = hs.map(function (q, i) { return (i ? 'L' : 'M') + x(q.hora).toFixed(1) + ' ' + y(q.nivel).toFixed(1); }).join(' ');
+    var mejor = b.p.marea.mejor, bandTop = y(Math.min(mejor[1], hi)), bandBot = y(Math.max(mejor[0], lo));
+    return '<svg class="marea" viewBox="0 0 ' + W + ' ' + Hh + '" preserveAspectRatio="none" role="img" aria-label="Curva de marea del día">' +
+      '<rect x="0" y="' + bandTop.toFixed(1) + '" width="' + W + '" height="' + Math.max(0, bandBot - bandTop).toFixed(1) + '" fill="var(--band)"/>' +
+      '<line x1="0" x2="' + W + '" y1="' + y(0).toFixed(1) + '" y2="' + y(0).toFixed(1) + '" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"/>' +
+      '<path d="' + d + '" fill="none" stroke="var(--tide)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>' +
+      '</svg>';
+  }
+
+  // Ángulo con signo respecto a hacia dónde mira la playa: >0 = por la derecha mirando al mar.
+  function relAng(p, deg) { return ((deg - p.orienta + 540) % 360) - 180; }
+  // Flecha que apunta hacia donde va el viento o el swell (norte arriba, como en Windguru).
+  function flecha(desde, color) {
+    return '<svg width="18" height="18" viewBox="-10 -10 20 20" style="vertical-align:-4px;transform:rotate(' + ((desde + 180) % 360) + 'deg)" aria-hidden="true"><path d="M0 8V-7M-4.5-3L0-8L4.5-3" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  function marcasMarea(tm) {
+    return tm.map(function (t) {
+      var hf = (t.min % 1440) / 60;
+      if (hf < H0 - 0.4 || hf > H1 + 0.4) return '';
+      var left = ((hf - H0) + 0.5) / NH * 100;
+      return '<span class="mk" style="left:' + left.toFixed(1) + '%;top:' + (t.tipo === 'pleamar' ? '0' : '48px') + '">' + (t.tipo === 'pleamar' ? '▲' : '▼') + hm(t.min % 1440) + '</span>';
+    }).join('');
+  }
+  function filaTabla(hs, label, cls, fn, extra) {
+    return '<div class="rh' + (extra || '') + '">' + label + '</div>' + hs.map(function (x) { return '<div class="c ' + cls + (extra || '') + '">' + fn(x) + '</div>'; }).join('');
+  }
+
+  // Tabla horaria tipo Windguru: una columna por hora, todo alineado con la curva de marea.
+  function tablaHoras(b, r, tm) {
+    var p = b.p, hs = r.horas;
+    function notaCelda(v, extra) { return '<span class="blk' + extra + (v < 0.5 ? ' cero' : '') + '" style="--o:' + (0.3 + 0.7 * v / 5).toFixed(2) + '"></span><span class="tx">' + (v >= 0.5 ? f1(v) : '') + '</span>'; }
+    var tipoCls = { tierra: 'vt', lateral: 'vl', mar: 'vm' };
+    return '<div class="tabla" role="group" aria-label="Previsión hora a hora">' +
+      filaTabla(hs, '', 'cab', function (x) { return hh(x.hora); }) +
+      filaTabla(hs, 'surf', '', function (x) { return notaCelda(x.ev.surf, ''); }) +
+      filaTabla(hs, 'bugui', '', function (x) { return notaCelda(x.ev.bb, ' b2'); }) +
+      filaTabla(hs, '<span style="color:var(--tide)">m</span>', 'cb', function (x) { return '<span class="bar" style="height:' + Math.max(4, Math.min(x.h / 3, 1) * 100).toFixed(0) + '%"></span><span class="num">' + f1(x.h) + '</span>'; }, ' sep') +
+      filaTabla(hs, '<span style="color:var(--tide)">s</span>', '', function (x) { return '<span class="num"' + (x.T >= 10 ? ' style="font-weight:700"' : '') + '>' + f0(x.T) + '</span>'; }) +
+      filaTabla(hs, '<span style="color:var(--tide)">kW</span>', '', function (x) { var w = x.ev.potencia; return '<span class="num"' + (w >= 6 ? ' style="font-weight:700"' : '') + '>' + (w < 10 ? f1(w) : f0(w)) + '</span>'; }) +
+      filaTabla(hs, '<span style="color:var(--tide)">dir</span>', '', function (x) { return flecha(x.dir, Math.abs(relAng(p, x.dir)) <= 60 ? 'var(--tide)' : 'var(--muted)'); }) +
+      filaTabla(hs, '<span style="color:var(--star)">kn</span>', '', function (x) { return '<span class="num ' + tipoCls[x.ev.tipo] + '" style="width:100%;text-align:center">' + f0(x.kn) + '</span>'; }, ' sep') +
+      filaTabla(hs, '<span style="color:var(--star)">dir</span>', '', function (x) { return flecha(x.wdir, 'var(--star)'); }) +
+      '<div class="rh">marea</div><div class="tmarea">' + sparkMarea(b) + marcasMarea(tm) + '</div>' +
+      '</div>' +
+      '<div class="leyenda"><span><i style="background:var(--good)"></i>surf (sobre 5)</span><span><i style="background:var(--tide)"></i>bugui (sobre 5)</span><span>kW = potencia por metro de ola</span><span>viento: verde de tierra · ámbar lateral · rojo de mar</span></div>';
+  }
+
+  function cambiosDia(r) {
+    var hs = r.horas, f = hs[0], l = hs[hs.length - 1], pk = hs.reduce(function (m, x) { return x.h > m.h ? x : m; }, f), txt;
+    if (pk.hora > f.hora && pk.hora < l.hora && pk.h - f.h >= 0.15 && pk.h - l.h >= 0.15) txt = 'sube hasta <b>' + f1(pk.h) + ' m</b> a las ' + hh(pk.hora) + ' h y luego baja a ' + f1(l.h) + ' m';
+    else if (l.h - f.h >= 0.15) txt = 'sube de ' + f1(f.h) + ' m (' + hh(f.hora) + ' h) a <b>' + f1(l.h) + ' m</b> (' + hh(l.hora) + ' h)';
+    else if (f.h - l.h >= 0.15) txt = 'baja de ' + f1(f.h) + ' m (' + hh(f.hora) + ' h) a <b>' + f1(l.h) + ' m</b> (' + hh(l.hora) + ' h)';
+    else txt = 'se mantiene en unos <b>' + f1(pk.h) + ' m</b>';
+    var tmin = Math.min.apply(null, hs.map(function (x) { return x.T; })), tmax = Math.max.apply(null, hs.map(function (x) { return x.T; }));
+    if (tmax - tmin >= 2) txt += ' · periodo de ' + f0(tmin) + ' a ' + f0(tmax) + ' s';
+    var vt = tramos(hs, function (x) { return nombreDir(x.wdir).split(' ')[0] + '|' + x.ev.tipo; }, function (x) { return nombreDir(x.wdir).split(' ')[0] + ' (' + TL[x.ev.tipo] + ')'; })
+      .map(function (s) { return '<b>' + s.label + '</b> ' + hh(s.ini) + '–' + hh(s.fin + 1) + ' h'; }).join(' → ');
+    return '<div class="cambios"><div>' + flecha(270, 'var(--tide)') + ' Swell: ' + txt + '</div><div>' + flecha(270, 'var(--star)') + ' Viento: ' + vt + '</div></div>';
+  }
+
+  // Clima de la playa: iconos, temperatura y probabilidad de lluvia hora a hora, con resumen.
+  function climaHTML(hs) {
+    var temps = hs.map(function (x) { return x.temp; }).filter(function (v) { return v != null; });
+    var aguas = hs.map(function (x) { return x.agua; }).filter(function (v) { return v != null; });
+    var cielo = tramos(hs, function (x) { return x.cielo; }, function (x) { return CIELO[x.cielo]; }).map(function (s) { return '<b>' + s.label + '</b> ' + hh(s.ini) + '–' + hh(s.fin + 1) + ' h'; }).join(' → ');
+    var lluv = hs.filter(function (x) { return x.pp >= 40; }), ppMax = Math.max.apply(null, hs.map(function (x) { return x.pp; }));
+    var txtLluvia = lluv.length ? '<b>Lluvia probable</b> ' + hh(lluv[0].hora) + '–' + hh(lluv[lluv.length - 1].hora + 1) + ' h (hasta ' + f0(ppMax) + '%)' : ppMax >= 20 ? 'Riesgo bajo de lluvia (hasta ' + f0(ppMax) + '%)' : '<b>Sin lluvia prevista</b>';
+    var temp = temps.length ? '<b>' + f0(Math.min.apply(null, temps)) + '–' + f0(Math.max.apply(null, temps)) + ' °C</b>' : '';
+    var agua = aguas.length ? ' · agua a <b>' + f0(aguas.reduce(function (a, v) { return a + v; }, 0) / aguas.length) + ' °C</b>' : '';
+    return '<div class="tabla" role="group" aria-label="Clima hora a hora">' +
+      filaTabla(hs, '', 'cab', function (x) { return hh(x.hora); }) +
+      filaTabla(hs, '', 'ic', function (x) { return icono(x.cielo, x.noche); }) +
+      filaTabla(hs, '°C', '', function (x) { return x.temp == null ? '' : '<span class="num">' + f0(x.temp) + '°</span>'; }) +
+      filaTabla(hs, 'lluvia', '', function (x) { return '<span class="num" style="color:' + (x.pp >= 40 ? 'var(--tide);font-weight:700' : 'var(--muted)') + '">' + (x.pp >= 10 ? f0(x.pp) + '%' : '') + '</span>'; }) +
+      '</div>' +
+      '<div class="clima-res"><div>Temperatura ' + temp + agua + '</div><div>' + cielo + '</div><div>' + txtLluvia + '</div></div>';
+  }
+
+  function fichaHTML(b, r) {
+    var tm = b.mareas.filter(function (x) { return Math.floor(x.min / 1440) === state.dia; });
+    var tideTxt = tm.map(function (x) { return '<span>' + (x.tipo === 'pleamar' ? '▲ Pleamar ' : '▼ Bajamar ') + hm(x.min % 1440) + ' <span class="lbl-t">(' + (x.nivel >= 0 ? '+' : '−') + f1(Math.abs(x.nivel)) + ' m)</span></span>'; }).join(' · ');
+    return '<article class="ficha"><div class="ficha-top"><div><h3>' + b.p.nombre + '</h3><div class="zona">' + b.p.zona + '</div></div>' +
+      '<div class="notas">' +
+      '<div class="nt"><span class="et">Surf</span>' + estrellasHTML(r.ms.ev.surf) + '<span>' + f1(r.ms.ev.surf) + '/5' + (r.vs ? ' · ' + rango(r.vs) : '') + '</span></div>' +
+      '<div class="nt"><span class="et">Bugui</span>' + estrellasHTML(r.mb.ev.bb) + '<span>' + f1(r.mb.ev.bb) + '/5' + (r.vb ? ' · ' + rango(r.vb) : '') + '</span></div></div></div>' +
+      '<div class="consejo">' + consejo(b, r) + '</div>' +
+      cambiosDia(r) +
+      tablaHoras(b, r, tm) +
+      '<div class="tide-line">' + tideTxt + '</div>' +
+      '<div class="lbl-t">' + b.p.marea.nota + '</div>' +
+      '<h4 class="sh">Clima</h4>' + climaHTML(r.horas) + '</article>';
+  }
+
+  function dibujarFichas() {
+    document.getElementById('fichas').innerHTML = '<div style="display:flex;flex-direction:column;gap:16px">' +
+      state.datos.map(function (b) { return fichaHTML(b, resumenDia(b, state.dia)); }).join('') + '</div>';
+  }
+
+  function dibujar() { dibujarDias(); dibujarRadar(); document.getElementById('leyenda').innerHTML = leyendaHTML(); dibujarFichas(); }
+
+  // ---------- Datos ----------
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('button.dia');
+    if (t && state.datos) { state.dia = +t.dataset.d; dibujar(); }
+  });
+
+  cargar(window.PLAYAS).then(function (d) {
+    state.datos = d;
+    var ahora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
+    document.getElementById('act').textContent = 'Surf y bugui · 5 playas · actualizado a las ' + ahora;
+    dibujar();
+  }).catch(function (err) {
+    document.getElementById('act').textContent = 'No se pudo cargar la previsión';
+    document.getElementById('radar').innerHTML = '<div class="estado">Error al consultar Open-Meteo (' + err.message + '). Comprueba la conexión y recarga.</div>';
+  });
+})();
+</script>
+</body>
+</html>

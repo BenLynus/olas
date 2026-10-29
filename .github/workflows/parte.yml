@@ -1,0 +1,29 @@
+name: Parte diario
+
+on:
+  schedule:
+    # Madrid es UTC+1 en invierno y UTC+2 en verano. Se lanza a las dos horas posibles
+    # y parte.js solo envía cuando son las 10:00 en Madrid.
+    - cron: '0 8 * * *'
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      forzar:
+        description: Enviar ahora aunque no sean las 10:00
+        type: boolean
+        default: true
+
+jobs:
+  parte:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enviar parte
+        run: node parte.js
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FORZAR: ${{ github.event_name == 'workflow_dispatch' && inputs.forzar && '1' || '' }}
