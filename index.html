@@ -10,25 +10,13 @@
 <style>
   /* Composición: cabecera, radar de buenas olas a 7 días y una ficha por playa (surf, bugui, marea y clima), todas siempre visibles. */
   :root {
-    --bg: #eef3f5; --panel: #ffffff; --fg: #0e2230; --muted: #5a7080; --line: #d3dee4;
-    --accent: #0b7f8c; --star: #e08a00; --good: #168a5b; --warn: #c07a00; --bad: #b8433a;
-    --cell0: #e3ebef; --tide: #3b6fb0; --band: rgba(22,138,91,.14);
+    --bg: #0a1822; --panel: #11242f; --fg: #e6f0f4; --muted: #8aa3b1; --line: #213947;
+    --accent: #43c3cf; --star: #f2b13a; --good: #3fcf94; --warn: #f0b04a; --bad: #ef7d72;
+    --cell0: #172e3b; --tide: #6fa3e0; --band: rgba(63,207,148,.16);
     --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
     --body: 'Barlow', system-ui, sans-serif;
     --mono: 'JetBrains Mono', ui-monospace, monospace;
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #0a1822; --panel: #11242f; --fg: #e6f0f4; --muted: #8aa3b1; --line: #213947;
-      --accent: #43c3cf; --star: #f2b13a; --good: #3fcf94; --warn: #f0b04a; --bad: #ef7d72;
-      --cell0: #172e3b; --tide: #6fa3e0; --band: rgba(63,207,148,.16); color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #0a1822; --panel: #11242f; --fg: #e6f0f4; --muted: #8aa3b1; --line: #213947;
-    --accent: #43c3cf; --star: #f2b13a; --good: #3fcf94; --warn: #f0b04a; --bad: #ef7d72;
-    --cell0: #172e3b; --tide: #6fa3e0; --band: rgba(63,207,148,.16); color-scheme: dark;
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.45; }
@@ -48,7 +36,7 @@
   .dia .dn { font: 600 12px var(--mono); text-transform: uppercase; color: var(--muted); display: block; }
   .dia .dd { font: 700 20px var(--display); display: block; line-height: 1.15; }
   .dr-h { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 4px; }
-  .rp { padding: 8px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+  .rp { cursor: pointer; padding: 8px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
   .rp-top { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
   .cnt { font: 700 12px var(--mono); padding: 1px 7px; border-radius: 4px; color: #fff; }
   .cnt.alto { background: var(--good); } .cnt.medio { background: var(--warn); }
@@ -121,15 +109,10 @@
 
   <section class="panel">
     <h2>Radar de los próximos días</h2>
-    <div class="lbl-t" style="margin-bottom:6px">Se señala cada playa y día donde se dan 2 o más de estas 4 condiciones: tamaño, periodo, fuerza y viento. Si no se da ninguna, no sale.</div>
+    <div class="lbl-t" style="margin-bottom:6px">Se señala cada playa y día donde se dan 2 o más de estas 4 condiciones: tamaño, periodo, fuerza y viento. Si no se da ninguna, no sale. Toca una playa para ver su detalle hora a hora más abajo.</div>
     <div id="radar"><div class="estado">Cargando…</div></div>
     <details class="ley-box"><summary>Leyenda: cuándo es bajo, ok o serio</summary><div class="ley" id="leyenda"></div></details>
   </section>
-
-  <div>
-    <h2>Previsión por playa</h2>
-    <div class="dias" id="dias" style="margin-top:0"></div>
-  </div>
 
   <div id="fichas"></div>
 
@@ -174,21 +157,12 @@
       if (!filas.length) continue;
       html += '<div class="dr-h">' + fechaLarga(fechas[d], d) + '</div>' + filas.map(function (x) {
         var q = x.g.rep, c = x.g.c;
-        return '<div class="rp"><div class="rp-top"><b>' + x.b.p.nombre + '</b><span class="cnt ' + (x.g.n >= 3 ? 'alto' : 'medio') + '">' + x.g.n + ' de 4</span><span class="lbl-t">' + rango(x.g.v) + '</span></div><div class="chips">' +
+        return '<div class="rp" data-d="' + d + '" role="button" tabindex="0"><div class="rp-top"><b>' + x.b.p.nombre + '</b><span class="cnt ' + (x.g.n >= 3 ? 'alto' : 'medio') + '">' + x.g.n + ' de 4</span><span class="lbl-t">' + rango(x.g.v) + '</span></div><div class="chips">' +
           chip('Tamaño', c.tam, f1(q.h) + ' m') + chip('Periodo', c.per, f0(q.T) + ' s') + chip('Fuerza', c.pot, f1(q.ev.potencia) + ' kW/m') +
           chip('Viento', c.vie, f0(q.kn) + ' kn ' + nombreDir(q.wdir).split(' ')[0].toLowerCase()) + '</div></div>';
       }).join('');
     }
     document.getElementById('radar').innerHTML = html || '<div class="estado" style="padding:6px 0;text-align:left">Ningún día de los próximos 7 cumple ni 2 de las 4 condiciones en ninguna playa: no se espera ola.</div>';
-  }
-
-  function dibujarDias() {
-    var fechas = state.datos[0].fechas;
-    document.getElementById('dias').innerHTML = fechas.slice(0, DIAS_VISTA).map(function (f, i) {
-      var mx = 0;
-      state.datos.forEach(function (b) { var g = condDia(b, i); if (g) mx = Math.max(mx, g.n); });
-      return '<button class="dia" data-d="' + i + '" aria-pressed="' + (i === state.dia) + '"><span class="dn">' + nombreDia(f, i) + '</span><span class="dd">' + (mx ? mx + '/4' : '–') + '</span></button>';
-    }).join('');
   }
 
   function leyendaHTML() {
@@ -303,16 +277,20 @@
   }
 
   function dibujarFichas() {
-    document.getElementById('fichas').innerHTML = '<div style="display:flex;flex-direction:column;gap:16px">' +
-      state.datos.map(function (b) { return fichaHTML(b, resumenDia(b, state.dia)); }).join('') + '</div>';
+    var orden = state.datos.map(function (b) { return { b: b, r: resumenDia(b, state.dia) }; }).sort(function (a, c) { return c.r.nota - a.r.nota; });
+    document.getElementById('fichas').innerHTML = '<h2>Detalle · ' + fechaLarga(state.datos[0].fechas[state.dia], state.dia) + ' · mejores playas primero</h2>' +
+      '<div style="display:flex;flex-direction:column;gap:16px">' + orden.map(function (x) { return fichaHTML(x.b, x.r); }).join('') + '</div>';
   }
 
-  function dibujar() { dibujarDias(); dibujarRadar(); document.getElementById('leyenda').innerHTML = leyendaHTML(); dibujarFichas(); }
+  function dibujar() { dibujarRadar(); document.getElementById('leyenda').innerHTML = leyendaHTML(); dibujarFichas(); }
 
   // ---------- Datos ----------
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('button.dia');
-    if (t && state.datos) { state.dia = +t.dataset.d; dibujar(); }
+    var f = e.target.closest('.rp[data-d]');
+    if (!f || !state.datos) return;
+    state.dia = +f.dataset.d;
+    dibujarFichas();
+    document.getElementById('fichas').scrollIntoView({ behavior: 'smooth' });
   });
 
   cargar(window.PLAYAS).then(function (d) {
