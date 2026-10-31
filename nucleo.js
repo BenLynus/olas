@@ -178,16 +178,31 @@
   }
 
 
-  function pedir(url) { return fetch(url).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); }
-  function cargar(playas) {
+  // Si una petición falla (corte breve, límite de Open-Meteo), se reintenta una vez a los 2,5 s.
+  function pedir(url, intento) {
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).catch(function (e) {
+      if (intento) throw e;
+      return new Promise(function (ok) { setTimeout(ok, 2500); }).then(function () { return pedir(url, 1); });
+    });
+  }
+  // Respuestas crudas de una playa: [mar, viento]. La web las guarda tal cual para reutilizarlas si luego falla la carga.
+  function pedirPlaya(p) {
     var tz = '&timezone=Europe%2FMadrid&forecast_days=' + DIAS_VISTA;
+    var u1 = 'https://marine-api.open-meteo.com/v1/marine?latitude=' + p.marino.lat + '&longitude=' + p.marino.lon + '&hourly=swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,wave_period,wave_direction,sea_level_height_msl,sea_surface_temperature' + tz;
+    var u2 = 'https://api.open-meteo.com/v1/forecast?latitude=' + p.viento.lat + '&longitude=' + p.viento.lon + '&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,temperature_2m,weather_code,precipitation_probability,is_day&wind_speed_unit=kn' + tz;
+    return Promise.all([pedir(u1), pedir(u2)]);
+  }
+  // Para el aviso de Telegram: todas las playas o error.
+  function cargar(playas) {
+    return Promise.all(playas.map(function (p) { return pedirPlaya(p).then(function (r) { return procesar(p, r[0], r[1]); }); }));
+  }
+  // Para la web: cada playa por separado, una que falle no tumba a las demás. Devuelve [{p, r}] o [{p, error}].
+  function cargarPorPlaya(playas) {
     return Promise.all(playas.map(function (p) {
-      var u1 = 'https://marine-api.open-meteo.com/v1/marine?latitude=' + p.marino.lat + '&longitude=' + p.marino.lon + '&hourly=swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,wave_period,wave_direction,sea_level_height_msl,sea_surface_temperature' + tz;
-      var u2 = 'https://api.open-meteo.com/v1/forecast?latitude=' + p.viento.lat + '&longitude=' + p.viento.lon + '&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,temperature_2m,weather_code,precipitation_probability,is_day&wind_speed_unit=kn' + tz;
-      return Promise.all([pedir(u1), pedir(u2)]).then(function (r) { return procesar(p, r[0], r[1]); });
+      return pedirPlaya(p).then(function (r) { return { p: p, r: r }; }, function (e) { return { p: p, error: e }; });
     }));
   }
 
 
-  root.Olas = { DIAS_VISTA, H0, H1, NH, DIR8, TL, CIELO, nombreDir, distAng, f1, f0, hh, hm, rango, evalHora, mareas, procesar, ventana, resumenDia, nombreDia, fechaLarga, UMBRAL, condiciones, contar, condDia, tramos, consejo, cargar };
+  root.Olas = { DIAS_VISTA, H0, H1, NH, DIR8, TL, CIELO, nombreDir, distAng, f1, f0, hh, hm, rango, evalHora, mareas, procesar, ventana, resumenDia, nombreDia, fechaLarga, UMBRAL, condiciones, contar, condDia, tramos, consejo, cargar, cargarPorPlaya };
 })(typeof window !== 'undefined' ? window : globalThis);

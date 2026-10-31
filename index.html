@@ -293,14 +293,32 @@
     document.getElementById('fichas').scrollIntoView({ behavior: 'smooth' });
   });
 
-  cargar(window.PLAYAS).then(function (d) {
-    state.datos = d;
-    var ahora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
-    document.getElementById('act').textContent = 'Surf y bugui · 5 playas · actualizado a las ' + ahora;
+  // Copia de la última previsión buena (respuestas crudas por playa). Solo se usa si hoy falla la carga y tiene menos de 12 h.
+  var CLAVE = 'olas_ultima_prevision', MAX_EDAD_MS = 12 * 3600 * 1000;
+  function leerCopia() {
+    try { var c = JSON.parse(localStorage.getItem(CLAVE)); return c && c.t && c.crudos && Date.now() - c.t < MAX_EDAD_MS ? c : null; } catch (e) { return null; }
+  }
+  function guardarCopia(crudos, t) { try { localStorage.setItem(CLAVE, JSON.stringify({ t: t, crudos: crudos })); } catch (e) {} }
+  function horaDe(t) { return new Date(t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }); }
+
+  O.cargarPorPlaya(window.PLAYAS).then(function (res) {
+    var copia = leerCopia(), crudos = {}, ok = [], sinDatos = [], conCopia = [];
+    res.forEach(function (x) {
+      if (!x.error) { crudos[x.p.id] = x.r; ok.push(x); return; }
+      if (copia && copia.crudos[x.p.id]) { ok.push({ p: x.p, r: copia.crudos[x.p.id] }); conCopia.push(x.p.nombre); } else sinDatos.push(x.p.nombre);
+    });
+    if (!ok.length) throw new Error(res[0].error.message);
+    // solo se guarda como "última buena" cuando todas las playas se han cargado en directo
+    if (!conCopia.length && !sinDatos.length) guardarCopia(crudos, Date.now());
+    state.datos = ok.map(function (x) { return O.procesar(x.p, x.r[0], x.r[1]); });
+    var texto = 'Surf y bugui · ' + ok.length + ' playas · actualizado a las ' + horaDe(Date.now());
+    if (conCopia.length) texto += ' · con datos guardados de las ' + horaDe(copia.t) + ' en: ' + conCopia.join(', ');
+    if (sinDatos.length) texto += ' · sin datos ahora: ' + sinDatos.join(', ') + ' (recarga en un momento)';
+    document.getElementById('act').textContent = texto;
     dibujar();
   }).catch(function (err) {
     document.getElementById('act').textContent = 'No se pudo cargar la previsión';
-    document.getElementById('radar').innerHTML = '<div class="estado">Error al consultar Open-Meteo (' + err.message + '). Comprueba la conexión y recarga.</div>';
+    document.getElementById('radar').innerHTML = '<div class="estado">Error al consultar Open-Meteo (' + err.message + '). Ya se ha reintentado una vez; recarga en un momento.</div>';
   });
 })();
 </script>
