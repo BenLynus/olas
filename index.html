@@ -65,23 +65,26 @@
   .dato .k { font: 500 11px var(--mono); text-transform: uppercase; color: var(--muted); letter-spacing: .05em; }
   .dato .v { font: 700 22px var(--display); line-height: 1.1; }
   .dato .v small { font: 500 13px var(--body); color: var(--muted); }
-  .tabla { display: grid; grid-template-columns: 30px repeat(14, minmax(0, 1fr)); gap: 2px; align-items: stretch; }
-  .tabla .rh { font: 500 9px var(--mono); color: var(--muted); display: flex; align-items: center; justify-content: flex-start; }
-  .tabla .c { font: 500 10px var(--mono); min-width: 0; height: 22px; display: flex; align-items: center; justify-content: center; position: relative; border-radius: 3px; }
-  .tabla .c.cab { color: var(--muted); height: 16px; font-size: 9px; }
-  .tabla .c.cb { height: 46px; align-items: flex-start; }
-  .tabla .c.ic { height: 24px; }
-  .tabla .bar { position: absolute; left: 3px; right: 3px; bottom: 0; background: var(--tide); opacity: .45; border-radius: 2px 2px 0 0; }
-  .tabla .num { position: relative; padding-top: 2px; }
-  .tabla .blk { position: absolute; inset: 0; background: var(--good); opacity: var(--o); border-radius: 3px; }
+  .parte-t { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 0 -2px; }
+  .tabla { display: grid; gap: 4px; align-items: stretch; }
+  .tabla .rh { font: 600 10px var(--mono); color: var(--muted); display: flex; align-items: center; }
+  .tabla .c { font: 700 17px var(--mono); min-width: 0; height: 38px; display: flex; align-items: center; justify-content: center; position: relative; border-radius: 6px; background: var(--cell0); }
+  .tabla .c.cab { background: none; color: var(--muted); height: 22px; font-size: 14px; font-weight: 600; }
+  .tabla .c.cb { height: 68px; align-items: flex-start; overflow: hidden; }
+  .tabla .c.ic { height: 44px; }
+  .tabla .bar { position: absolute; left: 0; right: 0; bottom: 0; background: var(--tide); opacity: .5; }
+  .tabla .num { position: relative; padding-top: 4px; }
+  .tabla .blk { position: absolute; inset: 0; background: var(--good); opacity: var(--o); border-radius: 6px; }
   .tabla .blk.b2 { background: var(--tide); }
   .tabla .blk.cero { background: var(--cell0); opacity: 1; }
   .tabla .tx { position: relative; color: var(--fg); }
-  .tabla .sep { border-top: 1px solid var(--line); margin-top: 3px; padding-top: 3px; height: 28px; }
-  .tabla .vt { border-bottom: 3px solid var(--good); } .tabla .vl { border-bottom: 3px solid var(--warn); } .tabla .vm { border-bottom: 3px solid var(--bad); }
-  .tmarea { grid-column: 2 / -1; position: relative; }
-  .tmarea .mk { position: absolute; transform: translateX(-50%); font: 600 9px var(--mono); color: var(--tide); white-space: nowrap; background: var(--panel); padding: 0 2px; border-radius: 2px; }
-  svg.marea { display: block; width: 100%; height: 64px; margin-top: 4px; }
+  .tabla .sep { margin-top: 8px; }
+  .tabla .c.vt { box-shadow: inset 0 -5px 0 var(--good); } .tabla .c.vl { box-shadow: inset 0 -5px 0 var(--warn); } .tabla .c.vm { box-shadow: inset 0 -5px 0 var(--bad); }
+  .tmarea { position: relative; padding-bottom: 20px; }
+  .tmarea .mk { position: absolute; transform: translateX(-50%); font: 700 12px var(--mono); color: var(--tide); white-space: nowrap; background: var(--panel); padding: 0 3px; border-radius: 3px; }
+  .tmarea .tk { position: absolute; bottom: 0; transform: translateX(-50%); font: 500 12px var(--mono); color: var(--muted); }
+  svg.marea { display: block; width: 100%; height: 76px; margin-top: 4px; }
+  @media (max-width: 480px) { .ficha { padding: 14px 12px; } }
   .cambios { font-size: 13.5px; display: flex; flex-direction: column; gap: 4px; }
   .cambios b { font-weight: 600; }
   .leyenda { font: 500 11px var(--mono); color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
@@ -132,7 +135,7 @@
   // ---------- Dibujo ----------
   function estrellasHTML(v) { return '<span class="st" style="--v:' + (v / 5 * 100) + '%" aria-label="' + v + ' de 5">★★★★★</span>'; }
   // Iconos del tiempo, dibujados en SVG.
-  function icono(cat, noche) {
+  function icono(cat, noche, tam) {
     var NUBE = '<path d="M7 19h10a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.2 10.2 4.4 4.4 0 0 0 7 19z" fill="var(--cell0)" stroke="var(--muted)" stroke-width="1.5" stroke-linejoin="round"/>';
     var SOL = '<circle cx="12" cy="12" r="4" fill="var(--star)"/><g stroke="var(--star)" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></g>';
     var s;
@@ -142,7 +145,7 @@
     else if (cat === 'niebla') s = '<g stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round"><path d="M4 9h16M6 13h14M4 17h12"/></g>';
     else if (cat === 'lluvia') s = '<g transform="translate(0 -3)">' + NUBE + '</g><g stroke="var(--tide)" stroke-width="1.8" stroke-linecap="round"><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></g>';
     else s = '<g transform="translate(0 -3)">' + NUBE + '</g><path d="M12.5 14l-3 4.5h3L11 22l4.5-5.5h-3z" fill="var(--star)"/>';
-    return '<svg width="20" height="20" viewBox="0 0 24 24" role="img" aria-label="' + CIELO[cat] + '">' + s + '</svg>';
+    return '<svg width="' + (tam || 20) + '" height="' + (tam || 20) + '" viewBox="0 0 24 24" role="img" aria-label="' + CIELO[cat] + '">' + s + '</svg>';
   }
 
   // ---------- Radar: cuántas de las 4 condiciones se dan ----------
@@ -194,8 +197,8 @@
   // Ángulo con signo respecto a hacia dónde mira la playa: >0 = por la derecha mirando al mar.
   function relAng(p, deg) { return ((deg - p.orienta + 540) % 360) - 180; }
   // Flecha que apunta hacia donde va el viento o el swell (norte arriba, como en Windguru).
-  function flecha(desde, color) {
-    return '<svg width="18" height="18" viewBox="-10 -10 20 20" style="vertical-align:-4px;transform:rotate(' + ((desde + 180) % 360) + 'deg)" aria-hidden="true"><path d="M0 8V-7M-4.5-3L0-8L4.5-3" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function flecha(desde, color, tam) {
+    return '<svg width="' + (tam || 18) + '" height="' + (tam || 18) + '" viewBox="-10 -10 20 20" style="vertical-align:-4px;transform:rotate(' + ((desde + 180) % 360) + 'deg)" aria-hidden="true"><path d="M0 8V-7M-4.5-3L0-8L4.5-3" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
 
   function marcasMarea(tm) {
@@ -203,30 +206,48 @@
       var hf = (t.min % 1440) / 60;
       if (hf < H0 - 0.4 || hf > H1 + 0.4) return '';
       var left = ((hf - H0) + 0.5) / NH * 100;
-      return '<span class="mk" style="left:' + left.toFixed(1) + '%;top:' + (t.tipo === 'pleamar' ? '0' : '48px') + '">' + (t.tipo === 'pleamar' ? '▲' : '▼') + hm(t.min % 1440) + '</span>';
+      return '<span class="mk" style="left:' + left.toFixed(1) + '%;top:' + (t.tipo === 'pleamar' ? '0' : '56px') + '">' + (t.tipo === 'pleamar' ? '▲' : '▼') + hm(t.min % 1440) + '</span>';
     }).join('');
   }
+  function ticksMarea() {
+    var s = '';
+    for (var h = H0; h <= H1; h += 2) s += '<span class="tk" style="left:' + (((h - H0) + 0.5) / NH * 100).toFixed(1) + '%">' + hh(h) + '</span>';
+    return s;
+  }
   function filaTabla(hs, label, cls, fn, extra) {
-    return '<div class="rh' + (extra || '') + '">' + label + '</div>' + hs.map(function (x) { return '<div class="c ' + cls + (extra || '') + '">' + fn(x) + '</div>'; }).join('');
+    return '<div class="rh' + (extra || '') + '">' + label + '</div>' + hs.map(function (x) {
+      return '<div class="c ' + (typeof cls === 'function' ? cls(x) : cls) + (extra || '') + '">' + fn(x) + '</div>';
+    }).join('');
+  }
+  // El día se parte en mañana y tarde para que cada cuadrito sea grande y se lean bien las cifras.
+  function tablaGrid(titulo, hs, filas) {
+    return '<div class="parte-t">' + titulo + ' · ' + hh(hs[0].hora) + '–' + hh(hs[hs.length - 1].hora) + ' h</div>' +
+      '<div class="tabla" style="grid-template-columns:40px repeat(' + hs.length + ',minmax(0,1fr))" role="group">' + filas(hs) + '</div>';
+  }
+  function porPartes(hs, filas) {
+    return [['Mañana', hs.filter(function (x) { return x.hora < 15; })], ['Tarde', hs.filter(function (x) { return x.hora >= 15; })]]
+      .filter(function (p) { return p[1].length; })
+      .map(function (p) { return tablaGrid(p[0], p[1], filas); }).join('');
   }
 
-  // Tabla horaria tipo Windguru: una columna por hora, todo alineado con la curva de marea.
+  // Tabla horaria tipo Windguru: una columna por hora y la marea del día debajo.
   function tablaHoras(b, r, tm) {
-    var p = b.p, hs = r.horas;
+    var p = b.p;
     function notaCelda(v, extra) { return '<span class="blk' + extra + (v < 0.5 ? ' cero' : '') + '" style="--o:' + (0.3 + 0.7 * v / 5).toFixed(2) + '"></span><span class="tx">' + (v >= 0.5 ? f1(v) : '') + '</span>'; }
     var tipoCls = { tierra: 'vt', lateral: 'vl', mar: 'vm' };
-    return '<div class="tabla" role="group" aria-label="Previsión hora a hora">' +
-      filaTabla(hs, '', 'cab', function (x) { return hh(x.hora); }) +
-      filaTabla(hs, 'surf', '', function (x) { return notaCelda(x.ev.surf, ''); }) +
-      filaTabla(hs, 'bugui', '', function (x) { return notaCelda(x.ev.bb, ' b2'); }) +
-      filaTabla(hs, '<span style="color:var(--tide)">m</span>', 'cb', function (x) { return '<span class="bar" style="height:' + Math.max(4, Math.min(x.h / 3, 1) * 100).toFixed(0) + '%"></span><span class="num">' + f1(x.h) + '</span>'; }, ' sep') +
-      filaTabla(hs, '<span style="color:var(--tide)">s</span>', '', function (x) { return '<span class="num"' + (x.T >= 10 ? ' style="font-weight:700"' : '') + '>' + f0(x.T) + '</span>'; }) +
-      filaTabla(hs, '<span style="color:var(--tide)">kW</span>', '', function (x) { var w = x.ev.potencia; return '<span class="num"' + (w >= 6 ? ' style="font-weight:700"' : '') + '>' + (w < 10 ? f1(w) : f0(w)) + '</span>'; }) +
-      filaTabla(hs, '<span style="color:var(--tide)">dir</span>', '', function (x) { return flecha(x.dir, Math.abs(relAng(p, x.dir)) <= 60 ? 'var(--tide)' : 'var(--muted)'); }) +
-      filaTabla(hs, '<span style="color:var(--star)">kn</span>', '', function (x) { return '<span class="num ' + tipoCls[x.ev.tipo] + '" style="width:100%;text-align:center">' + f0(x.kn) + '</span>'; }, ' sep') +
-      filaTabla(hs, '<span style="color:var(--star)">dir</span>', '', function (x) { return flecha(x.wdir, 'var(--star)'); }) +
-      '<div class="rh">marea</div><div class="tmarea">' + sparkMarea(b) + marcasMarea(tm) + '</div>' +
-      '</div>' +
+    var filas = function (hs) {
+      return filaTabla(hs, '', 'cab', function (x) { return hh(x.hora); }) +
+        filaTabla(hs, 'surf', '', function (x) { return notaCelda(x.ev.surf, ''); }) +
+        filaTabla(hs, 'bugui', '', function (x) { return notaCelda(x.ev.bb, ' b2'); }) +
+        filaTabla(hs, '<span style="color:var(--tide)">ola m</span>', 'cb', function (x) { return '<span class="bar" style="height:' + Math.max(4, Math.min(x.h / 3, 1) * 100).toFixed(0) + '%"></span><span class="num">' + f1(x.h) + '</span>'; }, ' sep') +
+        filaTabla(hs, '<span style="color:var(--tide)">seg</span>', '', function (x) { return '<span style="' + (x.T >= 10 ? 'color:var(--good)' : '') + '">' + f0(x.T) + '</span>'; }) +
+        filaTabla(hs, '<span style="color:var(--tide)">kW</span>', '', function (x) { var w = x.ev.potencia; return '<span class="blk b2" style="--o:' + (0.15 + 0.6 * Math.min(w / 10, 1)).toFixed(2) + '"></span><span class="tx">' + (w < 10 ? f1(w) : f0(w)) + '</span>'; }) +
+        filaTabla(hs, '<span style="color:var(--tide)">dir</span>', '', function (x) { return flecha(x.dir, Math.abs(relAng(p, x.dir)) <= 60 ? 'var(--tide)' : 'var(--muted)', 24); }) +
+        filaTabla(hs, '<span style="color:var(--star)">viento kn</span>', function (x) { return tipoCls[x.ev.tipo]; }, function (x) { return f0(x.kn); }, ' sep') +
+        filaTabla(hs, '<span style="color:var(--star)">dir</span>', '', function (x) { return flecha(x.wdir, 'var(--star)', 24); });
+    };
+    return porPartes(r.horas, filas) +
+      '<div class="parte-t">Marea del día</div><div class="tmarea">' + sparkMarea(b) + marcasMarea(tm) + ticksMarea() + '</div>' +
       '<div class="leyenda"><span><i style="background:var(--good)"></i>surf (sobre 5)</span><span><i style="background:var(--tide)"></i>bugui (sobre 5)</span><span>kW = potencia por metro de ola</span><span>viento: verde de tierra · ámbar lateral · rojo de mar</span></div>';
   }
 
@@ -252,12 +273,12 @@
     var txtLluvia = lluv.length ? '<b>Lluvia probable</b> ' + hh(lluv[0].hora) + '–' + hh(lluv[lluv.length - 1].hora + 1) + ' h (hasta ' + f0(ppMax) + '%)' : ppMax >= 20 ? 'Riesgo bajo de lluvia (hasta ' + f0(ppMax) + '%)' : '<b>Sin lluvia prevista</b>';
     var temp = temps.length ? '<b>' + f0(Math.min.apply(null, temps)) + '–' + f0(Math.max.apply(null, temps)) + ' °C</b>' : '';
     var agua = aguas.length ? ' · agua a <b>' + f0(aguas.reduce(function (a, v) { return a + v; }, 0) / aguas.length) + ' °C</b>' : '';
-    return '<div class="tabla" role="group" aria-label="Clima hora a hora">' +
-      filaTabla(hs, '', 'cab', function (x) { return hh(x.hora); }) +
-      filaTabla(hs, '', 'ic', function (x) { return icono(x.cielo, x.noche); }) +
-      filaTabla(hs, '°C', '', function (x) { return x.temp == null ? '' : '<span class="num">' + f0(x.temp) + '°</span>'; }) +
-      filaTabla(hs, 'lluvia', '', function (x) { return '<span class="num" style="color:' + (x.pp >= 40 ? 'var(--tide);font-weight:700' : 'var(--muted)') + '">' + (x.pp >= 10 ? f0(x.pp) + '%' : '') + '</span>'; }) +
-      '</div>' +
+    return porPartes(hs, function (h) {
+      return filaTabla(h, '', 'cab', function (x) { return hh(x.hora); }) +
+        filaTabla(h, '', 'ic', function (x) { return icono(x.cielo, x.noche, 30); }) +
+        filaTabla(h, '°C', '', function (x) { return x.temp == null ? '' : f0(x.temp) + '°'; }) +
+        filaTabla(h, 'lluvia', '', function (x) { return '<span style="color:' + (x.pp >= 40 ? 'var(--tide)' : 'var(--muted)') + '">' + (x.pp >= 10 ? f0(x.pp) + '%' : '–') + '</span>'; });
+    }) +
       '<div class="clima-res"><div>Temperatura ' + temp + agua + '</div><div>' + cielo + '</div><div>' + txtLluvia + '</div></div>';
   }
 

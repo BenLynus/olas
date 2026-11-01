@@ -1,7 +1,7 @@
 // Reglas de cálculo compartidas: las usan la web (index.html) y el parte de Telegram (parte.js).
 // Aquí están las notas de surf y bugui, las 4 condiciones del radar y las frases de consejo.
 (function (root) {
-  var DIAS_VISTA = 7, H0 = 7, H1 = 20, NH = H1 - H0 + 1;
+  var DIAS_VISTA = 7, H0 = 9, H1 = 19, NH = H1 - H0 + 1;
   var DIR8 = ['Norte', 'Nordeste', 'Levante', 'Solano (SE)', 'Sur', 'Lebeche (SO)', 'Poniente', 'Noroeste'];
   var TL = { tierra: 'de tierra', lateral: 'lateral', mar: 'de mar' };
   var CIELO = { sol: 'Despejado', parcial: 'Nubes y claros', nublado: 'Nublado', niebla: 'Niebla', lluvia: 'Lluvia', tormenta: 'Tormenta' };
